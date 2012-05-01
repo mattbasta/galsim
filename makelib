@@ -1,0 +1,50 @@
+
+ifeq ($(SUNCC),1)
+CPPCC= /opt/SUNWspro/bin/CC
+else
+CPPCC= g++
+endif
+CXXFILES := $(wildcard *.cxx)
+XOBJFILES := $(subst .cxx,.o,$(CXXFILES))
+CPPFILES := $(wildcard *.cpp)
+POBJFILES := $(subst .cpp,.o,$(CPPFILES))
+OBJFILES = $(XOBJFILES) $(POBJFILES)
+
+JAVAC = javac
+JAVAFILES := $(wildcard *.java)
+CLASSFILES := $(subst .java,.class,$(JAVAFILES))
+
+DEFFLAGS =
+
+ifeq ($(DEBUG),1)
+DEBUGFLAG = -g
+else
+DEBUGFLAG =
+endif
+
+INCFLAGS = -I.
+
+CPPFLAGS= $(DEFFLAGS) $(INCFLAGS) $(DEBUGFLAG)
+
+%.o :	%.cxx
+		/bin/bash -c "$(CPPCC) -c $(CPPFLAGS) $< -o $@"
+
+%.o :	%.cpp
+		/bin/bash -c "$(CPPCC) -c $(CPPFLAGS) $< -o $@"
+
+%.class:	%.java
+		/bin/bash -c "$(JAVAC) $(DEBUGFLAG) $<"
+
+javadoc:
+			javadoc -package -d $(ACCTWWW)/javadoc -sourcepath $(HOME)/JavaLang $(WORKDIR) $(SUBPACKAGES)
+
+JARFILE=$(BASENAME).jar
+
+jar:		$(JARFILE)
+			jar uvf $(JARFILE) $(CLASSFILES)
+
+$(JARFILE):	$(CLASSFILES)
+			jar cvf $(JARFILE) $(CLASSFILES)
+
+subclean:
+		/bin/rm -f *.o *.class $(JARFILE) core *.exe *.obj *.pyc
