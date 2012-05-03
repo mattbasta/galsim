@@ -1,17 +1,19 @@
 package galsim;
 
-public class Simulator implements ISimulator, Runnable {
+public class Simulator extends SimulatorStub implements Runnable {
 
     private final int cores;
     private final Universe u;
 
-    public double[][] state;
     private long lastMSUpdate = 0;
     private long ticks = 0;
 
-    public Simulator(int diameter, int particles, int cores) {
+    private final Runnable callback;
+
+    public Simulator(int diameter, int particles, int cores, Runnable callback) {
         this.cores = cores;
         this.u = new Universe(diameter, particles, cores, this);
+        this.callback = callback;
     }
 
     public void start() {
@@ -22,11 +24,11 @@ public class Simulator implements ISimulator, Runnable {
         this.u.interrupt();
     }
 
-    public double[][] getState() { // For ISimulator.getState
+    public float[][] getState() { // For ISimulator.getState
         return this.state;
     }
 
-    public double[] getStateParticle(int i) { // For ISimulator.getState
+    public float[] getStateParticle(int i) { // For ISimulator.getState
         return this.state[i];
     }
 
@@ -41,6 +43,8 @@ public class Simulator implements ISimulator, Runnable {
         }
 
         ticks++;
+
+        callback.run();
 
         //for(int i = 0; i < state.length; i++)
         //    System.out.println(String.valueOf(state[i][0]) + "," +

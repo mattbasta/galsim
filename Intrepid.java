@@ -1,7 +1,12 @@
 package galsim;
 
+import java.io.*;
+import java.net.*;
+
 import java.nio.FloatBuffer;
 import org.lwjgl.BufferUtils;
+import org.lwjgl.input.Keyboard;
+import org.lwjgl.input.Mouse;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.DisplayMode;
@@ -11,12 +16,10 @@ import org.lwjgl.util.glu.GLU;
 
 public class Intrepid {
 
-    private final int diameter;
-    private final int particle_count;
-    private final int cores;
-    private final Simulator s;
+    private int particle_count = 2000;
+    private final Sensors s;
 
-    private final Particle[] particles;
+    private Particle[] particles;
 
     private FloatBuffer mat_spec;
     private FloatBuffer light_pos;
@@ -24,20 +27,28 @@ public class Intrepid {
     private FloatBuffer model_amb;
 
     private final boolean USE_LIGHTING = false;
+    private final float CUBE_SIZE = 0.1f;
+    private final float MOUSE_SENSITIVITY = 0.2f;
 
     public Intrepid() {
-        this.diameter = 200;
-        this.particle_count = 2000;
-        this.cores = 8;
 
-        this.s = new Simulator(diameter, particle_count, cores);
+        Sensors sense = null;
+        try {
+            sense = new Sensors();
+        } catch(IOException ex) {
+            System.out.println("Error initializing client connections.");
+            System.out.println(ex.getMessage());
+        }
+        this.s = sense;
 
-        this.particles = new Particle[this.particle_count];
-        for(int i = 0; i < this.particle_count; i++)
-            this.particles[i] = new Particle(i, this.s);
+        this.particles = new Particle[0];
     }
 
     public void start() {
+        // If there was an error setting up the sensors, just die.
+        if(this.s == null)
+            return;
+
         // Set up the display window.
         try {
             Display.setDisplayMode(new DisplayMode(1024, 768));
@@ -52,9 +63,6 @@ public class Intrepid {
 
         // Spin up the simulator
         s.start();
-        System.out.println("Initializing " + particle_count + " particles...");
-        for(int i = 0; i < particle_count; i++)
-            particles[i].update_initial();
 
         // Set the display up for perspective mode (as opposed to orthogonal
         // mode);
@@ -62,14 +70,7 @@ public class Intrepid {
         GL11.glMatrixMode(GL11.GL_PROJECTION);
         GL11.glLoadIdentity();
         GLU.gluPerspective(80.0f, 1024.0f / 768.0f,
-                           0.1f, (float)diameter);
-
-        // Point the camera
-        GLU.gluLookAt(
-                //0.0f, (float)(diameter / 2), 0.0f,
-                0.0f, 10.0f, 1.0f,
-                0.0f, 0.0f, 0.0f,
-                0.0f, 1.0f, 0.0f);
+                           0.1f, 200.0f);
         GL11.glMatrixMode(GL11.GL_MODELVIEW);
 
         // Set up the lighting variables
@@ -112,20 +113,71 @@ public class Intrepid {
         drawCube();
         GL11.glEndList();
 
-        GL11.glScalef(0.2f, 0.2f, 0.2f);
+        GL11.glScalef(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
+        GLU.gluLookAt(
+            0.0f, 10.0f, 1.0f,
+            0.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f);
 
         long lastMSUpdate = 0;
         long fps = 0;
 
+        // Set up some things for input
+        float dx = 0.0f, dy = 0.0f, dw = 0.0f;
+        float cam_vangle = 45.0f, cam_hangle = 0.0f, cam_zoom = 1.0f;
+        Mouse.setGrabbed(true);
+
         // The render loop
-        while(!Display.isCloseRequested()) {
+        while(!Display.isCloseRequested() &&
+              !Keyboard.isKeyDown(Keyboard.KEY_ESCAPE)) {
+
+            // If we don't have any information about the simulation yet, deal
+            // with that appropriately.
+            if(s.state == null || s.state.length == 0)
+                continue;
+            if(s.state.length != particles.length) {
+                // We've gotten new information from the server about the
+                // simulation. Update that information and re-initialize the
+                // particle list.
+                System.out.println("Initializing particles to match server...");
+                particle_count = s.state.length;
+                Particle[] ps = new Particle[s.state.length];
+                for(int i = 0; i < particle_count; i++) {
+                    ps[i] = new Particle(i, this.s);
+                    ps[i].update_initial();
+                }
+                particles = ps;
+            }
+
+            // Update the display based on the view settings
+            dx = Mouse.getDX();
+            dy = Mouse.getDY();
+            dw = Mouse.getDWheel();
+
+            if(dy != 0.0f) {
+                cam_vangle += dy * MOUSE_SENSITIVITY;
+                cam_vangle = Math.min(90.0f, Math.max(-90.0f, cam_vangle));
+            }
+            if(dx != 0.0f)
+                cam_hangle += dx * MOUSE_SENSITIVITY;
+            if(dw != 0.0f)
+                cam_zoom = Math.max(1.0f, cam_zoom + dw * MOUSE_SENSITIVITY);
+
+            GL11.glPushMatrix();
+            GL11.glTranslatef(0.0f, -1 * cam_zoom, 0.0f);
+            GL11.glRotatef(cam_hangle, 0.0f, 0.0f, 1.0f);
+            GL11.glRotatef(cam_vangle, 0.0f, 1.0f, 0.0f);
 
             // Clear the screen.
             GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
-            GL11.glColor3f(0.5f, 0.5f, 0.5f);
 
             // Draw the particles as cubes.
             for(int i = 0; i < particle_count; i++) {
+                if(i == 0)
+                    GL11.glColor3f(1.0f, 0.2f, 0.2f);
+                else
+                    GL11.glColor3f(0.5f, 0.5f, 0.5f);
+
                 GL11.glPushMatrix();
 
                 Particle p = particles[i];
@@ -140,6 +192,8 @@ public class Intrepid {
 
                 GL11.glPopMatrix();
             }
+
+            GL11.glPopMatrix();
 
             // Update the particles with the latest positions.
             for(int i = 0; i < particle_count; i++)

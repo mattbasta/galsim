@@ -11,8 +11,8 @@ public class Universe {
     private final int particles;
     private final int cores;
     private final int[] particle_masses;
-    private double[][] particle_locations;
-    private final double[][] particle_velocities;
+    private float[][] particle_locations;
+    private final float[][] particle_velocities;
 
     private final CyclicBarrier barrier;
     private final Runnable callback;
@@ -20,17 +20,17 @@ public class Universe {
     private Thread[] sims;
 
     final int MAX_MASS = 300;
-    final double TIME_PER_TICK = 10;
-    final double GRAVITY = Double.valueOf("6.6738480E-11");
-    final double SOFTENING = 0.01;
+    final float TIME_PER_TICK = 10;
+    final float GRAVITY = Float.valueOf("6.6738480E-11");
+    final float SOFTENING = 0.01f;
 
     public Universe(int diameter, int particles, int cores, Runnable callback) {
         this.diameter = diameter;
 
         this.particles = particles;
         this.particle_masses = new int[particles];
-        this.particle_locations = new double[particles][3];
-        this.particle_velocities = new double[particles][3];
+        this.particle_locations = new float[particles][3];
+        this.particle_velocities = new float[particles][3];
 
         this.cores = cores;
         if(cores > 0)
@@ -48,9 +48,9 @@ public class Universe {
                 this.particle_locations[i][1] = 0;
                 this.particle_locations[i][2] = 0;
 
-                this.particle_velocities[i][0] = 0;//rgen.nextDouble() * 0.003 - 0.0015;
-                this.particle_velocities[i][1] = 0;//rgen.nextDouble() * 0.003 - 0.0015;
-                this.particle_velocities[i][2] = 0;//rgen.nextDouble() * 0.003 - 0.0015;
+                this.particle_velocities[i][0] = 0;//rgen.nextFloat() * 0.003 - 0.0015;
+                this.particle_velocities[i][1] = 0;//rgen.nextFloat() * 0.003 - 0.0015;
+                this.particle_velocities[i][2] = 0;//rgen.nextFloat() * 0.003 - 0.0015;
                 continue;
             }
             this.particle_masses[i] = (int)Math.pow(rgen.nextInt(MAX_MASS), 3);
@@ -59,19 +59,19 @@ public class Universe {
             this.particle_locations[i][1] = rgen.nextInt(diameter) - diameter / 2;
             this.particle_locations[i][2] = rgen.nextInt(diameter) - diameter / 2;
 
-            this.particle_velocities[i][0] = rgen.nextDouble() * 0.003 - 0.0015;
-            this.particle_velocities[i][1] = rgen.nextDouble() * 0.003 - 0.0015;
-            this.particle_velocities[i][2] = rgen.nextDouble() * 0.003 - 0.0015;
+            this.particle_velocities[i][0] = (float)(rgen.nextFloat() * 0.003 - 0.0015);
+            this.particle_velocities[i][1] = (float)(rgen.nextFloat() * 0.003 - 0.0015);
+            this.particle_velocities[i][2] = (float)(rgen.nextFloat() * 0.003 - 0.0015);
         }
 
     }
 
-    public double[][] getSnapshot() {
+    public float[][] getSnapshot() {
         return particle_locations.clone();
     }
 
     private void update_particle_location(int particle) {
-        double x, y, z;
+        float x, y, z;
         x = this.particle_locations[particle][0];
         y = this.particle_locations[particle][1];
         z = this.particle_locations[particle][2];
@@ -82,14 +82,14 @@ public class Universe {
         y += this.particle_velocities[particle][1] * TIME_PER_TICK;
         z += this.particle_velocities[particle][2] * TIME_PER_TICK;
 
-        this.particle_locations[particle] = new double[] {x, y, z};
+        this.particle_locations[particle] = new float[] {x, y, z};
     }
 
     private void update_particle_velocity(int particle) {
         int mass = this.particle_masses[particle];
 
         // Cache the location of the particle in the universe.
-        double x, y, z;
+        float x, y, z;
         x = this.particle_locations[particle][0];
         y = this.particle_locations[particle][1];
         z = this.particle_locations[particle][2];
@@ -97,7 +97,7 @@ public class Universe {
         //System.out.println("Working on particle " + particle);
 
         // Create a new "vector" for this tick of the simulation.
-        double vec_x = 0, vec_y = 0, vec_z = 0;
+        float vec_x = 0, vec_y = 0, vec_z = 0;
 
         // Start processing at the next particle. We just take the inverse
         // of the acceleration vector and apply it to the other particles'
@@ -106,11 +106,11 @@ public class Universe {
             if(i == particle) continue;
 
             // Get the location information for particle `i`.
-            double[] ploc = this.particle_locations[i];
+            float[] ploc = this.particle_locations[i];
 
             // Get the non-normalized direction vector from the particle to
             // particle `i`.
-            double xd = x - ploc[0], yd = y - ploc[1], zd = z - ploc[2];
+            float xd = x - ploc[0], yd = y - ploc[1], zd = z - ploc[2];
             double distance = Math.sqrt(Math.pow(xd, 2) +
                                         Math.pow(yd, 2) +
                                         Math.pow(zd, 2));
@@ -126,7 +126,7 @@ public class Universe {
             // delta(v) / delta(t) = G * m_2 / r^2
             // delta(v) = (G * m_2 * delta(t)) / r^2
 
-            double delta_v = GRAVITY * this.particle_masses[i] * distance;
+            float delta_v = (float)(GRAVITY * this.particle_masses[i] * distance);
             delta_v /= Math.pow(
                     Math.pow(distance, 2) + SOFTENING * SOFTENING, 3 / 2);
             // delta_v is now the change in velocity along the unit vector
