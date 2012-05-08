@@ -9,7 +9,7 @@ public class GalServer {
     private static DatagramSocket ds;
 
     private static long lastMSUpdate = 0;
-    private static int currentStripe = 0;
+    //private static int currentStripe = 0;
 
     private static int SERVER_DELAY = 50;
 
@@ -45,6 +45,8 @@ public class GalServer {
                     return;
                 lastMSUpdate = now;
 
+                int stripes = Constants.stripes;
+                for(int currentStripe = 0; currentStripe < stripes; currentStripe++) {
                 try {
                     ByteArrayOutputStream bos = new ByteArrayOutputStream();
                     ObjectOutputStream oos = new ObjectOutputStream(bos);
@@ -56,16 +58,19 @@ public class GalServer {
                     oos.writeObject(stripe);
 
                     byte[] dataobj = bos.toByteArray();
-                    if(dataobj.length > 16000)
+                    if(dataobj.length > 16000) {
                         s.packet_warn = true;
+                        Constants.stripes += 1;
+                    }
                     sendPacket(dataobj);
                 } catch(IOException ex) {
                     System.out.println("There was a problem sending a datagram to the clients.");
                     System.out.println(ex.getMessage());
                     return;
                 }
-                currentStripe += 1;
-                currentStripe %= Constants.stripes;
+                }
+                //currentStripe += 1;
+                //currentStripe %= Constants.stripes;
             }
         });
 
