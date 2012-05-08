@@ -11,6 +11,8 @@ SERVERFILE=$(SERVERCLASS).class
 CLIENTCLASS=Intrepid
 CLIENTFILE=$(CLIENTCLASS).class
 
+REMOTE_SERVER=156.12.38.47
+
 DEBUG = 1
 
 include makelib
@@ -45,5 +47,5 @@ testvis:    $(CLASSFILES)
 
 
 deploy:
-	rsync -avz -e ssh . mbast810@hermione:~/JavaLang/galsim/
+	rsync -avz -e ssh . mbast810@$(REMOTE_SERVER):~/JavaLang/galsim/
 

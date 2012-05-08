@@ -7,6 +7,7 @@ public class Simulator extends SimulatorStub implements Runnable {
 
     private long lastMSUpdate = 0;
     private long ticks = 0;
+    public boolean packet_warn = false;
 
     private final Runnable callback;
 
@@ -38,6 +39,10 @@ public class Simulator extends SimulatorStub implements Runnable {
         long now = System.currentTimeMillis();
         if(now - lastMSUpdate > 1000) {
             System.out.println(ticks + " cycles/second");
+            if(packet_warn) {
+                System.out.println("WARNING: State size getting too large.");
+                packet_warn = false;
+            }
             ticks = 0;
             lastMSUpdate = now;
         }

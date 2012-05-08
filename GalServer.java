@@ -7,46 +7,11 @@ public class GalServer {
 
     private static Simulator s;
     private static DatagramSocket ds;
-    private static InetAddress clientGroup;
-    private static boolean broadcasting = false;
-    private static int stripes = 4;
 
     private static long lastMSUpdate = 0;
     private static int currentStripe = 0;
 
-    private static Thread worker = new Thread(new Runnable() {
-        public void run() {
-            System.out.println("Scanning on all frequencies...");
-
-            try {
-                byte[] buffer = new byte[256];
-                while(true) {
-                    DatagramPacket p = new DatagramPacket(buffer, buffer.length);
-                    ds.receive(p);
-                    String response = new String(p.getData(), 0, p.getLength());
-
-                    System.out.println("Message received: " + response + "; length=" + response.length());
-                    if(response.equals("hailing")) {
-                        System.out.println("Starting to broadcast.");
-                        broadcasting = true;
-                    } else if(response.equals("live long and prosper")) {
-                        System.out.println("Ending broadcast.");
-                        broadcasting = false;
-                    } else {
-                        System.out.println("Uninterpretable command: " + response);
-                    }
-                }
-            } catch(IOException ex) {
-                System.out.println("Error reading from client.");
-                return;
-            }
-        }
-    });
-
-    private static int CLIENT_PORT = 2364;
-    private static int SERVER_PORT = 2365;
-
-    private static int SERVER_DELAY = 25;
+    private static int SERVER_DELAY = 50;
 
     public static void main(String args[]) throws Exception {
         if(args.length != 3) {
@@ -58,13 +23,14 @@ public class GalServer {
 
     public static void start_server(String args[]) {
         try {
-            clientGroup = InetAddress.getByName("236.3.170.1");
+            Constants.BROADCAST_TO = InetAddress.getByName(Constants.BROADCAST_TO_IP);
         } catch(UnknownHostException ex) {
-            System.out.println("Cannot find client group");
+            System.out.println("Could not locate remote host " + Constants.BROADCAST_TO_IP);
             return;
         }
+
         try {
-            ds = new DatagramSocket(SERVER_PORT);
+            ds = new DatagramSocket();
         } catch(SocketException ex) {
             System.out.println("Couldn't bind to the server port.");
             return;
@@ -74,8 +40,6 @@ public class GalServer {
                           Integer.parseInt(args[2]),
                           new Runnable() {
             public void run() {
-                if(!broadcasting)
-                    return;
                 long now = System.currentTimeMillis();
                 if(now - lastMSUpdate < SERVER_DELAY)
                     return;
@@ -87,13 +51,13 @@ public class GalServer {
 
                     float[][] stripe = new float[s.state.length][];
                     for(int i = 0; i < s.state.length; i++)
-                        stripe[i] = (i % stripes == currentStripe) ? s.state[i] : null;
+                        stripe[i] = (i % Constants.stripes == currentStripe) ? s.state[i] : null;
                     //oos.writeObject(s.state);
                     oos.writeObject(stripe);
 
                     byte[] dataobj = bos.toByteArray();
                     if(dataobj.length > 16000)
-                        System.out.println("WARNING: State size large; size=" + dataobj.length);
+                        s.packet_warn = true;
                     sendPacket(dataobj);
                 } catch(IOException ex) {
                     System.out.println("There was a problem sending a datagram to the clients.");
@@ -101,16 +65,15 @@ public class GalServer {
                     return;
                 }
                 currentStripe += 1;
-                currentStripe %= stripes;
+                currentStripe %= Constants.stripes;
             }
         });
 
-        worker.start();
         s.start();
     }
 
     private static void sendPacket(byte[] data) throws IOException {
-        DatagramPacket p = new DatagramPacket(data, data.length, clientGroup, CLIENT_PORT);
+        DatagramPacket p = new DatagramPacket(data, data.length, Constants.BROADCAST_TO, Constants.PORT);
         ds.send(p);
     }
 

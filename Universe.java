@@ -48,20 +48,31 @@ public class Universe {
                 this.particle_locations[i][1] = 0;
                 this.particle_locations[i][2] = 0;
 
-                this.particle_velocities[i][0] = 0;//rgen.nextFloat() * 0.003 - 0.0015;
-                this.particle_velocities[i][1] = 0;//rgen.nextFloat() * 0.003 - 0.0015;
-                this.particle_velocities[i][2] = 0;//rgen.nextFloat() * 0.003 - 0.0015;
+                this.particle_velocities[i][0] = 0;
+                this.particle_velocities[i][1] = 0;
+                this.particle_velocities[i][2] = 0;
                 continue;
             }
             this.particle_masses[i] = (int)Math.pow(rgen.nextInt(MAX_MASS), 3);
 
-            this.particle_locations[i][0] = rgen.nextInt(diameter) - diameter / 2;
-            this.particle_locations[i][1] = rgen.nextInt(diameter) - diameter / 2;
-            this.particle_locations[i][2] = rgen.nextInt(diameter) - diameter / 2;
+            float x = 0, y = 0, z = 0;
+            // Randomize the position of the particle, but keep it within the
+            // initial bounds of the universe.
+            do {
+                x = rgen.nextInt(diameter) - diameter / 2;
+                y = rgen.nextInt(diameter) - diameter / 2;
+                z = rgen.nextInt(diameter) - diameter / 2;
+            } while(Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2) + Math.pow(z, 2)) > diameter / 2);
 
-            this.particle_velocities[i][0] = (float)(rgen.nextFloat() * 0.003 - 0.0015);
-            this.particle_velocities[i][1] = (float)(rgen.nextFloat() * 0.003 - 0.0015);
-            this.particle_velocities[i][2] = (float)(rgen.nextFloat() * 0.003 - 0.0015);
+            System.out.println("Initializing particle " + i + " at (" + x +  "," + y + "," + z + ")");
+
+            this.particle_locations[i][0] = x;
+            this.particle_locations[i][1] = y;
+            this.particle_locations[i][2] = z;
+
+            this.particle_velocities[i][0] = rgen.nextFloat() * 0.003f - 0.0015f;
+            this.particle_velocities[i][1] = rgen.nextFloat() * 0.003f - 0.0015f;
+            this.particle_velocities[i][2] = rgen.nextFloat() * 0.003f - 0.0015f;
         }
 
     }

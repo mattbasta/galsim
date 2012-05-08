@@ -152,7 +152,7 @@ public class Intrepid {
             // Update the display based on the view settings
             dx = Mouse.getDX();
             dy = Mouse.getDY();
-            dw = Mouse.getDWheel();
+            dw = Mouse.getDWheel() * -1;
 
             if(dy != 0.0f) {
                 cam_vangle += dy * MOUSE_SENSITIVITY;

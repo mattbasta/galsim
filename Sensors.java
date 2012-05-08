@@ -5,22 +5,15 @@ import java.net.*;
 
 public class Sensors extends SimulatorStub {
 
-    private final MulticastSocket clientSocket;
-    private final DatagramSocket responseSocket;
-    private final InetAddress serverAddress;
-
-    private final int CLIENT_PORT = 2364;
-    private final int SERVER_PORT = 2365;
-
+    private final DatagramSocket clientSocket;
     private final Thread worker;
 
     public Sensors() throws IOException, UnknownHostException {
         state = null;
 
-        clientSocket = new MulticastSocket(CLIENT_PORT);
-        clientSocket.joinGroup(InetAddress.getByName("236.3.170.1"));
-        responseSocket = new DatagramSocket();
-        serverAddress = InetAddress.getByName("localhost");
+        clientSocket = new DatagramSocket(Constants.PORT);
+        //Constants.BROADCAST_TO = InetAddress.getByName(Constants.BROADCAST_TO_IP);
+        //clientSocket.joinGroup(Constants.BROADCAST_TO);
 
         worker = new Thread(new Runnable() {
             public void run() {
@@ -40,15 +33,11 @@ public class Sensors extends SimulatorStub {
     }
 
     public void start() {
-        System.out.println("Sending hail...");
-        sendPacket("hailing");
         worker.start();
     }
 
     public void stop() {
-        sendPacket("live long and prosper");
         worker.interrupt();
-        responseSocket.close();
         clientSocket.close();
     }
 
@@ -78,15 +67,5 @@ public class Sensors extends SimulatorStub {
         }
     }
 
-    private void sendPacket(String strdata) {
-        byte[] data = strdata.getBytes();
-        DatagramPacket p = new DatagramPacket(data, data.length, serverAddress, SERVER_PORT);
-        try {
-            responseSocket.send(p);
-        } catch(IOException ex) {
-            System.out.println("Error sending request packet.");
-            return;
-        }
-    }
 
 }
