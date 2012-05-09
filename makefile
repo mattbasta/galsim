@@ -49,3 +49,5 @@ testvis:    $(CLASSFILES)
 deploy:
 	rsync -avz -e ssh . mbast810@$(REMOTE_SERVER):~/JavaLang/galsim/
 
+undeploy:
+	rsync -avz -e ssh mbast810@$(REMOTE_SERVER):~/JavaLang/galsim/ .
